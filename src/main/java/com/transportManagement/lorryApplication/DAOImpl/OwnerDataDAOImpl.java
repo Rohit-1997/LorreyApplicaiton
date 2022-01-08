@@ -4,7 +4,9 @@ import com.transportManagement.lorryApplication.DAO.OwnerDataDAO;
 import com.transportManagement.lorryApplication.requests.OwnerDataRequest;
 import com.transportManagement.lorryApplication.response.AcceptedTripsData;
 import com.transportManagement.lorryApplication.response.GetAcceptedTripsResponse;
+import com.transportManagement.lorryApplication.utils.DBUtils;
 import com.transportManagement.lorryApplication.utils.Utils;
+import com.transportManagement.lorryApplication.Loggers.Loggers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -22,7 +24,6 @@ public class OwnerDataDAOImpl implements OwnerDataDAO {
 
     @Override
     public GetAcceptedTripsResponse getAcceptedTrips(OwnerDataRequest request) {
-        System.out.println("In the DAO layer: " + request);
         GetAcceptedTripsResponse response = new GetAcceptedTripsResponse();
         Connection connection = null;
         CallableStatement stmt = null;
@@ -44,11 +45,13 @@ public class OwnerDataDAOImpl implements OwnerDataDAO {
                 while(rs.next()) {
                     System.out.println("In side the result set" + rs);
                     AcceptedTripsData tripData = new AcceptedTripsData();
-                    tripData.setTripId(rs.getString("TripId"));
-                    tripData.setMasterTripId(rs.getString("MasterTripID"));
+                    tripData.setTripId(rs.getInt("TripId"));
+                    tripData.setMasterTripId(rs.getInt("MasterTripID"));
                     tripData.setRegistrationNumber(rs.getString("RegistrationNumber"));
                     tripData.setStratLocation(rs.getString("start"));
                     tripData.setDestination(rs.getString("Destination"));
+
+                    response.getAcceptedTripsData().add(tripData);
 
                 }
             } else {
@@ -57,15 +60,10 @@ public class OwnerDataDAOImpl implements OwnerDataDAO {
         } catch(Exception e) {
             System.out.println("Exception in getAcceptedTrips Dao impl: " + e);
         } finally {
-             // Closing DB connections
-            try {
-                if (rs != null) rs.close();
-                if (connection != null) connection.close();
-                if (stmt != null) stmt.close();
-            } catch (Exception e) {
-                System.out.println("Exception while closing the connections getAcceptedTrips: "+ e);
-            }
+            DBUtils.closeDBConnections(stmt, connection, rs);
         }
-        return null;
+
+        Loggers.OWNERDATA_LOGGER.info("The response fetched from the database: {}", response);
+        return response;
     }
 }
